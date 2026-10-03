@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manhwa Web Reader - High Speed Manga & Webtoon Reader</title>
+  <meta name="description" content="Ultra-fast, beautiful dark-mode web reader for manhwa and webtoon PDFs." />
+
+  <!-- Preconnect Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- PDF.js Engine -->
+  <script src="assets/pdf.min.js"></script>
+</head>
+<body>
+
+  <div id="app">
+    <!-- ====================================================================
+         VIEW 1: HOME & LAUNCHER (Zero heavy 10GB folder scanning)
+         ==================================================================== -->
+    <div id="view-home" class="view">
+      <!-- Top Navigation Bar -->
+      <header class="home-nav">
+        <div class="brand-wrapper">
+          <div class="brand-logo-icon">✦</div>
+          <div class="brand-title">
+            <span class="glow-text">MANHWA</span>
+            <span class="brand-badge">WEB READER</span>
+          </div>
+        </div>
+
+        <div class="nav-actions">
+          <button class="btn btn-secondary" onclick="goToDownloader()" title="Switch to Downloader">
+            📥 <span class="btn-label-desktop">Downloader</span>
+          </button>
+
+          <button class="btn btn-primary" onclick="dom.fileInput.click()" title="Choose any PDF file to read">
+            📂 <span class="btn-label-desktop">Open PDF File</span>
+          </button>
+
+          <button class="btn btn-icon btn-secondary" onclick="fetchRecentHistory()" title="Refresh History">
+            🔄
+          </button>
+
+          <button class="btn btn-icon btn-secondary" onclick="toggleShortcutsModal()" title="Keyboard Shortcuts (?)">
+            ⌨
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Home Content -->
+      <main class="home-content">
+        <!-- Interactive Dropzone Hero -->
+        <div class="hero-dropzone" id="hero-dropzone" onclick="dom.fileInput.click()">
+          <div class="dropzone-glow-ring">
+            <div class="dropzone-icon">📖</div>
+          </div>
+          <h2 class="dropzone-heading">Open a Manhwa PDF</h2>
+          <p class="dropzone-sub">
+            Click here to choose your PDF file or drag and drop it anywhere into this window.
+          </p>
+          <div style="margin-top: 14px;">
+            <button class="btn btn-primary btn-pill" style="padding: 10px 26px; font-size: 0.92rem;">
+              Choose PDF File ➔
+            </button>
+          </div>
+          <div class="dropzone-features">
+            <span>⚡ Ultra-low RAM (&lt; 40MB)</span>
+            <span>✦ Infinite Webtoon Scroll</span>
+            <span>🔖 Autosaves Progress</span>
+          </div>
+        </div>
+
+        <!-- Continue Reading Section (Loaded strictly from lightweight reading_history.json) -->
+        <section class="history-section" id="history-section" style="display:none;">
+          <div class="section-header">
+            <h3 class="section-title">
+              🔖 Continue Reading
+            </h3>
+            <span id="history-count" class="count-badge">0 In Progress</span>
+          </div>
+          <div id="history-list" class="history-grid">
+            <!-- Dynamically populated from reading_history.json -->
+          </div>
+        </section>
+
+        <!-- Quick Shortcuts Card -->
+        <div class="shortcuts-card">
+          <div class="shortcuts-card-header">
+            <span>⚡ Reading Controls & Shortcuts</span>
+            <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.75rem;" onclick="toggleShortcutsModal()">View All</button>
+          </div>
+          <div class="shortcuts-card-grid">
+            <div><kbd>Hold Space</kbd> Continuous 60 FPS smooth scroll</div>
+            <div><kbd>Tap Space</kbd> Step scroll down</div>
+            <div><kbd>→</kbd> / <kbd>D</kbd> Next Chapter</div>
+            <div><kbd>←</kbd> / <kbd>A</kbd> Previous Chapter</div>
+            <div><kbd>W</kbd> Fit to Width</div>
+            <div><kbd>F</kbd> Fullscreen</div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 2: IMMERSIVE WEBTOON READER
+         ==================================================================== -->
+    <div id="view-reader" class="view hidden">
+      <!-- Reader Top Bar -->
+      <nav class="reader-topbar" id="reader-topbar">
+        <div class="reader-cluster">
+          <button class="btn btn-secondary" onclick="switchView('home')" title="Close Reader / Home (Esc)">
+            ← <span class="btn-label-desktop">Home</span>
+          </button>
+          <button class="btn btn-secondary" onclick="goToDownloader()" title="Go to Downloader">
+            📥 <span class="btn-label-desktop">Downloader</span>
+          </button>
+          <button class="btn btn-secondary" onclick="dom.fileInput.click()" title="Open Another PDF">
+            📂 <span class="btn-label-desktop">Open Another</span>
+          </button>
+          <button class="btn btn-secondary" onclick="toggleSidebar()" title="Chapters (Table of Contents)">
+            📖 <span class="btn-label-desktop">Chapters</span>
+          </button>
+        </div>
+
+        <div class="reader-cluster center-cluster">
+          <span id="reader-chapter-indicator" class="chapter-badge-interactive" onclick="toggleSidebar()" title="Click to view chapters">
+            Ch. 1
+          </span>
+          <span id="reader-doc-title" class="reader-doc-title" title="Reading Manhwa">
+            Reading Manhwa
+          </span>
+        </div>
+
+        <div class="reader-cluster">
+          <span id="reader-page-indicator" class="count-badge">p. 1 / 1</span>
+          <button class="btn active" id="btn-fit" onclick="toggleFitWidth()" title="Fit to Width (W)">
+            ↔ <span class="btn-label-desktop">Fit</span>
+          </button>
+          <button class="btn" id="btn-auto" onclick="toggleAutoScroll()" title="Toggle Auto Scroll (A)">
+            ⚡ <span class="btn-label-desktop">Auto</span>
+          </button>
+          <button class="btn btn-icon btn-secondary" onclick="toggleFullscreen()" title="Fullscreen (F)">
+            ⛶
+          </button>
+          <a href="/reader" target="_blank" class="btn btn-icon btn-secondary" id="btn-popout" title="Open Reader in New Tab" style="display:none; text-decoration:none;">
+            ⧉
+          </a>
+          <button class="btn btn-icon btn-secondary" onclick="toggleShortcutsModal()" title="Shortcuts (?)">
+            ?
+          </button>
+        </div>
+      </nav>
+
+      <!-- Main Virtualized Continuous Strip -->
+      <div id="reader-container" tabindex="0">
+        <div id="reader-strip" class="reader-strip"></div>
+      </div>
+
+      <!-- Floating HUD Controller -->
+      <div id="floating-hud">
+        <button class="hud-btn" onclick="prevChapter()" title="Previous Chapter (← / D)">◀</button>
+        <span id="autoscroll-badge">AUTO (<span id="auto-speed-display">2</span>x)</span>
+        <span id="hud-chap" class="hud-title-click" onclick="toggleSidebar()" title="Click to open chapter drawer">
+          Loading...
+        </span>
+        <span id="hud-pages" class="hud-page-count"><strong>1</strong> / 1</span>
+        <button class="hud-btn" onclick="nextChapter()" title="Next Chapter (→ / A)">▶</button>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         DRAWER & MODALS
+         ==================================================================== -->
+    <!-- Chapter Drawer Backdrop -->
+    <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+    <!-- Chapter Drawer Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <span>📖 Chapters & Bookmarks</span>
+        <button class="btn btn-icon btn-secondary" onclick="closeSidebar()" style="width:28px;height:28px;">✕</button>
+      </div>
+      <div class="sidebar-search">
+        <input type="text" id="chapter-search-input" placeholder="Search chapters..." autocomplete="off" />
+      </div>
+      <div class="chapter-list" id="chapter-list">
+        <!-- Dynamically rendered chapter items -->
+      </div>
+    </aside>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcuts-modal" class="modal-backdrop" onclick="if(event.target===this) toggleShortcutsModal()">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title font-heading glow-text">⚡ Keyboard Shortcuts</h3>
+          <button class="btn btn-icon btn-secondary" onclick="toggleShortcutsModal()" style="width:28px;height:28px;">✕</button>
+        </div>
+        <div class="shortcut-grid">
+          <div class="shortcut-row">
+            <span>Continuous Scroll (60 FPS)</span>
+            <kbd>Hold Space</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Scroll Step Down</span>
+            <kbd>Space</kbd> / <kbd>PageDown</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Scroll Step Up</span>
+            <kbd>Shift+Space</kbd> / <kbd>PageUp</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Next Chapter</span>
+            <kbd>→</kbd> / <kbd>Ctrl+→</kbd> / <kbd>D</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Previous Chapter</span>
+            <kbd>←</kbd> / <kbd>Ctrl+←</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Toggle Auto-Scroll</span>
+            <kbd>A</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Scroll Speed (+ / -)</span>
+            <kbd>+</kbd> / <kbd>-</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Fit to Width</span>
+            <kbd>W</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Fullscreen</span>
+            <kbd>F</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Close Reader / Esc</span>
+            <kbd>Esc</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input for native browser file picker -->
+    <input type="file" id="local-file-input" accept="application/pdf" style="display:none;" />
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>
